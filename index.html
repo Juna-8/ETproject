@@ -1,0 +1,45 @@
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
+import React from "react";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+/** KST 기준 날짜 포맷 (예: 4월 10일) */
+export function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return format(date, "M월 d일", { locale: ko });
+}
+
+/** KST 기준 날짜+시간 포맷 (예: 2026년 4월 10일 (금) 14:00) */
+export function formatDateTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  return format(date, "yyyy년 M월 d일 (eee) HH:mm", { locale: ko });
+}
+
+/** localStorage와 동기화되는 React 상태 훅 */
+export function useLocalStorage<T>(key: string, initialValue: T) {
+  const [storedValue, setStoredValue] = React.useState<T>(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? (JSON.parse(item) as T) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error("useLocalStorage setValue error:", error);
+    }
+  };
+
+  return [storedValue, setValue] as const;
+}
